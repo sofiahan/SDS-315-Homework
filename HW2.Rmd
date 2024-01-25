@@ -121,7 +121,7 @@ ggplot(bikerentals) + geom_line(aes(x=hr, y=avg_rentals)) + labs(x="Hour of the 
 ```{r echo=FALSE, include=FALSE}
 #Summarizes the avg bike rentals based on hour of day and whether it is a workingday
 bikerentals <- bikeshare%>%
-  mutate(daytype = ifelse(workingday==0, "workingday", "weekend/holiday"))%>%
+  mutate(daytype = ifelse(workingday==1, "workingday", "weekend/holiday"))%>%
   group_by(hr, daytype)%>%
   summarize(avg_rentals = mean(total))
 ```
@@ -131,7 +131,7 @@ bikerentals <- bikeshare%>%
 ggplot(bikerentals) + geom_line(aes(x=hr, y=avg_rentals)) + labs(x="Hour of the Day (0 = midnight)", y= "Average Number of Bike Rentals", title="Average Bike Rentals Based on Whether it is a Working Day") + facet_wrap(~daytype)
 ```
 
-**Caption:** Based on the line graphs, the maximum number of average bike rentals on non-working days is higher than the maximum number of average bike rentals on working days. On non-working days, there are two extreme peaks when the average number of bike rentals are at their greatest, while on working days, the hour at which the average number of biking rentals is highest is the 13th hour, which would be 1:00 PM. For both working and non-working days, the average number of bike rentals start off low between the 0th and 5th hour and decline between the 17th and 23rd hour. The key takeaway is that on non-working days, the greatest number of average bike rentals occurs twice a day with drastic rises and declines, while on working days, the average number of bike rentals is more gradual, with the greatest average occurring in the early afternoon.
+**Caption:** Based on the line graphs, the maximum number of average bike rentals on working days is higher than the maximum number of average bike rentals on non-working days. On working days, there are two extreme peaks when the average number of bike rentals are at their greatest, while on non-working days, the hour at which the average number of biking rentals is highest is the 13th hour, which would be 1:00 PM. For both working and non-working days, the average number of bike rentals start off low between the 0th and 5th hour and decline between the 17th and 23rd hour. The key takeaway is that on working days, the greatest number of average bike rentals occurs twice a day with drastic rises and declines, while on non-working days, the average number of bike rentals is more gradual, with the greatest average occurring in the early afternoon.
 
 <br>
 
@@ -140,17 +140,20 @@ ggplot(bikerentals) + geom_line(aes(x=hr, y=avg_rentals)) + labs(x="Hour of the 
 #Summarizes the avg bike rentals based on weather situation and whether it is a workingday
 bikerentals <- bikeshare%>%
   filter(hr == 9)%>%
-  mutate(daytype = ifelse(workingday==0, "workingday", "weekend/holiday"))%>%
+  mutate(daytype = ifelse(workingday==1, "workingday", "weekend/holiday"))%>%
   group_by(weathersit, daytype)%>%
   summarize(avg_rentals = mean(total))
 ```
 
 ```{r echo=FALSE}
+#Describes the weather situation more clearly
+bikerentals$weathersit <- factor(bikerentals$weathersit, levels = c(1, 2, 3), labels = c("Clear", "Mist/Cloudy", "Light Snow"))
+
 #Creates a faceted bar graph 
-ggplot(bikerentals) + geom_col(aes(x=weathersit, y=avg_rentals), col="black", fill='darkgray') + labs(x="Weather Situation Code", y= "Average Number of Bike Rentals", title="Average Bike Rentals at 9 AM Based on Weather Situation") + facet_wrap(~daytype)
+ggplot(bikerentals) + geom_col(aes(x=weathersit, y=avg_rentals), col="black", fill='darkgray') + labs(x="Weather Situation Code", y= "Average Number of Bike Rentals", title="Average Bike Rentals at 9 AM Based on Weather Situation") + facet_wrap(~daytype) + scale_x_discrete(labels = c("Clear", "Mist/Cloudy", "Light Snow"))
 ```
 
-**Caption:** Based on the barplot, the average number of bike rentals were higher on non-working days regardless of the weather situation. There were no bike rentals on either type of day at the 9 AM hour in weather situation 4 (heavy rain + ice pallets + thunderstorm + mist, snow + fog). The average number of bike rentals at 9 AM on a non-working day were highest and almost about the same in weather situation numbers 1 (clear, few clouds, partly cloudy) and 2 (mist+cloudy, mist+broken clouds, mist+few clouds, mist). Meanwhile, the average number of bike rentals at 9 AM on working days were highest in weather situation 1, and decreases with each increase in weather situation code. The average number of bike rentals on a non-working day in weather situation 3 (light snow, light rain + thunderstorm + scattered clouds, light rain + scattered clouds) was greater than that of a working day. The key takeaway is that the average number of bike rentals differs according to the weather situation more on working days than on non-working days. 
+**Caption:** Based on the barplot, the average number of bike rentals were higher on working days regardless of the weather situation. There were no bike rentals on either type of day at the 9 AM hour in weather situation 4 (heavy rain + ice pallets + thunderstorm + mist, snow + fog). The average number of bike rentals at 9 AM on a working day were highest and almost about the same in weather situation numbers 1 (clear, few clouds, partly cloudy) and 2 (mist+cloudy, mist+broken clouds, mist+few clouds, mist). Meanwhile, the average number of bike rentals at 9 AM on non-working days were highest in weather situation 1, and decreases with each increase in weather situation code. The average number of bike rentals on a working day in weather situation 3 (light snow, light rain + thunderstorm + scattered clouds, light rain + scattered clouds) was greater than that of a non-working day. The key takeaway is that the average number of bike rentals differs according to the weather situation more on non-working days than on working days. 
 
 ***
 
@@ -188,7 +191,7 @@ ggplot(boardings) + geom_line(aes(x=hour_of_day, y=avg, color=month)) + labs(tit
 
 ```{r echo=FALSE}
 #Creates a faceted scatterplot
-ggplot(capmetro) + geom_point(aes(x=temperature, y=boarding, color=weekend), cex=.7) + labs(title="Relationship Between Bus Boardings and Temperature", x="Temperature (F)", y="Number of Bus Boardings") + facet_wrap(~hour_of_day, nrow=4)
+ggplot(capmetro) + geom_point(aes(x=temperature, y=boarding, color=weekend), cex=.7) + labs(title="Relationship Between Bus Boardings and Temperature", x="Temperature (F)", y="Number of Bus Boardings") + facet_wrap(~hour_of_day, nrow=4) +  scale_color_discrete(name = "Day Type")
 
 #cor(capmetro$boarding, capmetro$temperature)
 ```
@@ -210,7 +213,7 @@ billboard <- read.csv("billboard.csv")
 #Returns the top 10 most popular songs 
 top10 <- billboard%>%
   group_by(performer, song)%>%
-  summarize(count=sum(weeks_on_chart))%>%
+  summarize(count=max(weeks_on_chart))%>%
   arrange(desc(count))%>%
   head(10)
 ```
@@ -221,7 +224,7 @@ kable(top10, col.names = c('Performer', 'Song', 'Count')) %>%
 kable_styling(bootstrap_options = c("striped"))
 ```
 
-**Caption:** Based on the table, the song "Radioactive" by Imagine Dragons had the greatest total number of weeks spent on the Billboard Top 100 at 3828 weeks. There are more single artists with songs in the top 10 most popular songs than bands, and most of the single artists are female. Furthermore, the four songs that spent the most number of weeks on the Billboard Top 100 were performed by male artists.
+**Caption:** Based on the table, the song "Radioactive" by Imagine Dragons had the greatest total number of weeks spent on the Billboard Top 100 at 87 weeks. There are more single artists with songs in the top 10 most popular songs than bands, and most of the single artists are female. Furthermore, the four songs that spent the most number of weeks on the Billboard Top 100 were performed by male artists.
 
 <br>
 
