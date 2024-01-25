@@ -18,7 +18,7 @@ library(ggplot2)
 suppressMessages(library(kableExtra))
 ```
 
-**Link to GitHub:** [Click Here](*insert github link here*)
+**Link to GitHub:** [Click Here](https://github.com/sofiahan/SDS-315-Homework)
 
 ***
 
