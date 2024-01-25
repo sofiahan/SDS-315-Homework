@@ -1,0 +1,265 @@
+---
+title: "HW 2"
+author: "Sofia Han (szh247) - SDS 315 UT Austin"
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
+---
+
+```{r global_options, echo=FALSE}
+#Sets the global options
+knitr::opts_chunk$set(fig.height=6, fig.width=8, warning=FALSE, message=FALSE, error=FALSE, tidy=TRUE, tidy.opts=list(width.cutoff=60))
+
+#Loads the libraries 
+suppressMessages(library(tidyverse))
+library(rmarkdown)
+library(ggplot2)
+suppressMessages(library(kableExtra))
+```
+
+**Link to GitHub:** [Click Here](*insert github link here*)
+
+***
+
+# **Problem 1: Beauty, or not, in the Classroom**
+
+```{r echo=FALSE}
+#Imports the dataset
+profs <- read.csv("profs.csv")
+```
+
+#### Part A:
+```{r echo=FALSE}
+#Creates a histogram of the course evaluation scores
+ggplot(profs) + geom_histogram(aes(x=eval), col="black", fill="darkgray") + labs(x="Course Evaluation Scores (Out of 5)", y="Frequency", title= "Distribution of Course Evaluation Scores for UT Professors") 
+```
+
+```{r echo=FALSE, include=FALSE}
+#Calculates summary statistics
+profs%>%
+  summarize(median_score=median(eval), 
+            sd_score=sd(eval), 
+            mean_score=mean(eval))
+```
+**Caption:** The shape of the distribution of course evaluation scores is slightly skewed to the left, with most of the course evaluation scores clustered on the higher end of the scale. The median and mean course evaluation scores are both 4.0/5.0, and the actual scores vary from the mean score by approximately 0.55 points, on average. The key takeaway is that the majority of UT professors get a course evaluation score above 3.0/5.0, indicating that the students are generally satisfied with the course and professor. 
+
+<br>
+
+#### Part B:
+
+```{r echo=FALSE}
+#Creates side by side boxplots based on whether the professor is a native English speaker
+ggplot(profs) + geom_boxplot(aes(x=native, y=eval), fill='darkgray') + labs(title = 'Course Evaluation Scores Based on Whether the Professor is a Native English Speaker', x= 'Native English Speaker', y='Course Evaluation Score (Out of 5)')
+```
+
+```{r echo=FALSE, include=FALSE}
+#Calculates summary statistics
+aggregate(eval~native, data=profs, median)
+```
+**Caption:** Based on the plot, the distribution of course evaluation scores for the non-native English speaker professors is approximately symmetrical while the distribution for the native English speaker professors is skewed to the left. The median course evaluation score for the non-native English speakers is 3.6, which is lower than the median course evaluation score for the native English speakers, 4.0. The key takeaway is that professors who are native English speakers tend to get higher course evaluation scores, but their course evaluation scores are more spread out than those of professors who are non-native English speakers.
+
+<br>
+
+#### Part C:
+
+```{r echo=FALSE}
+#Creates histograms faceted by gender 
+ggplot(profs) + geom_histogram(aes(x=eval), col="black", fill="darkgray") + labs(title= 'Course Evaluation Scores For UT Professors Based on Gender', x='Course Evaluation Score (Out of 5)', y='Frequency') + facet_wrap(~gender, nrow=2)
+```
+
+```{r echo=FALSE, include=FALSE}
+#Calculates summary statistics 
+aggregate(eval~gender, data=profs, median)
+```
+
+**Caption:** The shape of the distribution of course evaluation scores for both female and male professors is skewed to the left. The median course evaluation score for female professors is 3.90, which is lower than the median course evaluation score for male professors, 4.15. The key takeaway is that male and female professors have very similar course evaluation score distributions, with the majority of course evaluation scores being greater than 3.5/5.0, which indicates that in general, both female and male professors receive relatively high course evaluation scores.
+
+<br>
+
+#### Part D:
+
+```{r echo=FALSE}
+#Creates a scatterplot between beauty and course evaluation score
+ggplot(profs) + geom_point(aes(x=beauty, y=eval)) + labs(title="Relationship Between A Professor's Physical Attractiveness and their Course Evaluation Score", x="Physical Attractiveness (0 = average)", y="Course Evaluation Score (Out of 5)")
+```
+
+```{r echo=FALSE, include=FALSE}
+#Calculates the correlation between the two variables
+round(cor(profs$beauty, profs$eval), 3) #Returns 0.189
+```
+**Caption:** Based on the scatterplot, there appears to be little to no correlation between the professor's physical attractiveness and course evaluation score. The calculated correlation coefficient between a professor's physical attractiveness and their course evaluation score is 0.189, which indicates that there is a weak, positive, linear relationship between the two variables. The key takeaway is that a professor's physical attractiveness does not correlate to the course evaluation score that they receive. 
+
+***
+
+# **Problem 2: Bike Sharing**
+
+```{r echo=FALSE}
+#Imports the dataset
+bikeshare <- read.csv("bikeshare.csv")
+```
+
+#### Plot A:
+```{r echo=FALSE, include=FALSE}
+#Summarizes the average bike rentals based on hour of the day
+bikerentals <- bikeshare%>%
+  group_by(hr)%>%
+  summarize(avg_rentals = mean(total))
+head(bikerentals)
+```
+
+```{r echo=FALSE}
+#Creates a line graph 
+ggplot(bikerentals) + geom_line(aes(x=hr, y=avg_rentals)) + labs(x="Hour of the Day (0 = midnight)", y= "Average Number of Bike Rentals", title="Average Bike Rentals Based on Hour of Day")
+```
+
+**Caption:** Based on the line graph, the average number of bike rentals start off relatively low during the early hours of the day and then sharply rise between the 5th and 8th hour. There is a peak in average bike rentals during the 8th hour, which would be 8:00 AM, and during the 17th hour, which would be 5:00 PM. After the 8th hour, the average number of bike rentals declines and then gradually rises until after the 17th hour, when the number drops once again. The key takeaway is that the greatest number of average bike rentals occurs once in the early morning and once in the early evening. 
+
+<br>
+
+#### Plot B:
+```{r echo=FALSE, include=FALSE}
+#Summarizes the avg bike rentals based on hour of day and whether it is a workingday
+bikerentals <- bikeshare%>%
+  mutate(daytype = ifelse(workingday==0, "workingday", "weekend/holiday"))%>%
+  group_by(hr, daytype)%>%
+  summarize(avg_rentals = mean(total))
+```
+
+```{r echo=FALSE}
+#Creates a faceted line graph 
+ggplot(bikerentals) + geom_line(aes(x=hr, y=avg_rentals)) + labs(x="Hour of the Day (0 = midnight)", y= "Average Number of Bike Rentals", title="Average Bike Rentals Based on Whether it is a Working Day") + facet_wrap(~daytype)
+```
+
+**Caption:** Based on the line graphs, the maximum number of average bike rentals on non-working days is higher than the maximum number of average bike rentals on working days. On non-working days, there are two extreme peaks when the average number of bike rentals are at their greatest, while on working days, the hour at which the average number of biking rentals is highest is the 13th hour, which would be 1:00 PM. For both working and non-working days, the average number of bike rentals start off low between the 0th and 5th hour and decline between the 17th and 23rd hour. The key takeaway is that on non-working days, the greatest number of average bike rentals occurs twice a day with drastic rises and declines, while on working days, the average number of bike rentals is more gradual, with the greatest average occurring in the early afternoon.
+
+<br>
+
+#### Plot C:
+```{r echo=FALSE, include=FALSE}
+#Summarizes the avg bike rentals based on weather situation and whether it is a workingday
+bikerentals <- bikeshare%>%
+  filter(hr == 9)%>%
+  mutate(daytype = ifelse(workingday==0, "workingday", "weekend/holiday"))%>%
+  group_by(weathersit, daytype)%>%
+  summarize(avg_rentals = mean(total))
+```
+
+```{r echo=FALSE}
+#Creates a faceted bar graph 
+ggplot(bikerentals) + geom_col(aes(x=weathersit, y=avg_rentals), col="black", fill='darkgray') + labs(x="Weather Situation Code", y= "Average Number of Bike Rentals", title="Average Bike Rentals at 9 AM Based on Weather Situation") + facet_wrap(~daytype)
+```
+
+**Caption:** Based on the barplot, the average number of bike rentals were higher on non-working days regardless of the weather situation. There were no bike rentals on either type of day at the 9 AM hour in weather situation 4 (heavy rain + ice pallets + thunderstorm + mist, snow + fog). The average number of bike rentals at 9 AM on a non-working day were highest and almost about the same in weather situation numbers 1 (clear, few clouds, partly cloudy) and 2 (mist+cloudy, mist+broken clouds, mist+few clouds, mist). Meanwhile, the average number of bike rentals at 9 AM on working days were highest in weather situation 1, and decreases with each increase in weather situation code. The average number of bike rentals on a non-working day in weather situation 3 (light snow, light rain + thunderstorm + scattered clouds, light rain + scattered clouds) was greater than that of a working day. The key takeaway is that the average number of bike rentals differs according to the weather situation more on working days than on non-working days. 
+
+***
+
+# **Problem 3: Capital Metro UT Ridership**
+
+```{r echo=FALSE}
+#Imports the dataset
+capmetro <- read.csv("capmetro_UT.csv")
+
+#Recode the categorical variables in sensible, rather than alphabetical, order
+capmetro <- mutate(capmetro,
+day_of_week = factor(day_of_week,
+levels=c("Mon", "Tue", "Wed","Thu", "Fri", "Sat", "Sun")),
+month = factor(month,
+levels=c("Sep", "Oct","Nov")))
+```
+
+#### 1.
+
+```{r echo=FALSE}
+#Summarizes the average boardings based on hr of day, day of week, and month
+boardings <- capmetro%>%
+  group_by(hour_of_day, day_of_week, month)%>%
+  summarize(avg = mean(boarding))
+
+#Creates a faceted line graph
+ggplot(boardings) + geom_line(aes(x=hour_of_day, y=avg, color=month)) + labs(title="Average Capital Metro Bus Boardings", x="Hour of Day (13 = 1:00 PM)", y="Average Bus Boardings") + facet_wrap(~day_of_week, nrow=2)
+```
+
+**Caption:** Based on the line graphs, aside from Monday, the month with the lowest average number of bus boardings is November. On the weekdays, the average number of bus boardings rise from the 0th to the 15th hour and decline from the 15th to the 20th hour. On weekends, the average number of bus boardings plateau at a generally low amount. The Sunday line graph does indicate a slight rise in average bus boardings from the 0th to 18th hour. On each of the weekdays, the peak number of average bus boardings occurs sometime close to or during the 15th hour (3:00 PM), while on weekends, the average number of bus boardings are about the same throughout the day, with no particular peak at a certain hour. Additionally, the average number of bus boardings on weekends are much lower than that of weekdays. Average boardings on Mondays in September look lower compared to the other days and months likely because of labor day, which occurs on the first Monday of September. Since no one goes to work on labor day, there would be no bus boardings on that day, dragging the average number of bus boardings down for Mondays in September. Similarly, average boardings on Weds/Thurs/Fri in November look lower likely because of the Thanksgiving holiday. People often get those three days off to celebrate Thanksgiving, so there would be little to no bus boardings on those particular days, thus dragging down the average bus boardings.  
+
+<br>
+
+#### 2.
+
+```{r echo=FALSE}
+#Creates a faceted scatterplot
+ggplot(capmetro) + geom_point(aes(x=temperature, y=boarding, color=weekend), cex=.7) + labs(title="Relationship Between Bus Boardings and Temperature", x="Temperature (F)", y="Number of Bus Boardings") + facet_wrap(~hour_of_day, nrow=4)
+
+#cor(capmetro$boarding, capmetro$temperature)
+```
+
+**Caption:** Based on the faceted scatterplot, there appears to be little to no relationship between the temperature and the number of UT students riding the bus. The correlation between the number of bus boardings and temperature is about 0.20, which indicates that there is a weak, positive, linear relationship between the two variables. Overall, more students ride the bus on weekdays than weekends for a majority of the hours. The number of bus boardings start off low in the early hours, rise in the early afternoon, and then decline in the evening hours. 
+
+***
+
+# **Problem 4: Wrangling the Billboard Top 100**
+
+```{r echo=FALSE}
+#Imports the dataset
+billboard <- read.csv("billboard.csv")
+```
+
+#### Part A:
+
+```{r echo=FALSE, include=FALSE}
+#Returns the top 10 most popular songs 
+top10 <- billboard%>%
+  group_by(performer, song)%>%
+  summarize(count=sum(weeks_on_chart))%>%
+  arrange(desc(count))%>%
+  head(10)
+```
+
+```{r echo=FALSE}
+#Produces a nicely formatted table of the top 10
+kable(top10, col.names = c('Performer', 'Song', 'Count')) %>%
+kable_styling(bootstrap_options = c("striped"))
+```
+
+**Caption:** Based on the table, the song "Radioactive" by Imagine Dragons had the greatest total number of weeks spent on the Billboard Top 100 at 3828 weeks. There are more single artists with songs in the top 10 most popular songs than bands, and most of the single artists are female. Furthermore, the four songs that spent the most number of weeks on the Billboard Top 100 were performed by male artists.
+
+<br>
+
+#### Part B:
+
+```{r echo=FALSE, include=FALSE}
+#Summarizes the number of unique songs per year
+diversity <- billboard%>%
+  filter(year != 1958 & year != 2021)%>%
+  group_by(year)%>%
+  summarize(music = length(unique(song)))
+```
+
+```{r echo=FALSE}
+#Creates a line graph
+ggplot(diversity) + geom_line(aes(x=year, y=music)) + labs(title= "Is the Musical Diversity of the Billboard Top 100 Changing Over Time?", x= "Year", y="Number of Unique Songs")
+```
+
+**Caption:** Based on the line graph, there was a peak in the number of unique songs on the Billboard Top 100 around the year 1965, and then the number of unique songs rapidly declined in the following years until it started rising again a little after the year 2000. There also appears to be an unusual dip around the year 2010 in the number of unique songs on the Billboard Top 100, but then there's a sharp rise in the number of unique songs after the dip. 
+
+<br>
+
+#### Part C:
+
+```{r echo=FALSE, include=FALSE}
+#Summarizes the 19 artists with at least 30 hit songs
+hitsong <- billboard%>%
+  filter(weeks_on_chart >= 10)%>%
+  group_by(performer)%>%
+  summarize(count=length(unique(song)))%>%
+  filter(count>=30)
+```
+
+```{r echo=FALSE}
+#Creates a bar plot
+ggplot(hitsong) + geom_col(aes(x=performer, y=count), col="black", fill="darkgray") + labs(title="Musical Artists in the U.S. with Ten-Week Hit Songs", x="Artist Name", y="Number of Ten-Week Hit Songs") + coord_flip()
+```
+
+**Caption:** Based on the barplot above, Elton John had the most number of ten-week hit songs out of all the musical artists, with 52 songs. Five of the artists shown had exactly 30 ten-week hit songs, with all of them being male artists. The Rolling Stones were the only band to have at least 30 songs that were ten-week hits, with the majority of the artists being single artists. 
+
+<br>
