@@ -1,0 +1,202 @@
+---
+title: "Homework 3"
+author: "Sofia Han (szh247) - SDS 315 UT Austin"
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
+---
+
+```{r global_options, echo=FALSE, warning=FALSE}
+#Sets the global options
+knitr::opts_chunk$set(fig.height=6, fig.width=8, warning=FALSE, message=FALSE, error=FALSE, tidy=TRUE, tidy.opts=list(width.cutoff=60))
+
+#Loads the libraries 
+suppressMessages(library(tidyverse))
+library(rmarkdown)
+library(ggplot2)
+suppressMessages(library(mosaic))
+suppressMessages(library(kableExtra))
+```
+
+**Link to GitHub:** [Click Here](https://github.com/sofiahan/SDS-315-Homework)
+
+***
+
+# **Problem 1: Creatinine**
+
+```{r echo=FALSE}
+#Imports the dataset
+creatinine <- read.csv("creatinine.csv")
+```
+
+#### Part A: What creatinine clearance rate should we expect for a 55-year-old? 
+```{r echo=FALSE, include=FALSE}
+#Visualize the relationship 
+ggplot(creatinine) + geom_point(aes(x=age, y=creatclear)) + geom_smooth(aes(x=age, y=creatclear), method='lm')
+
+#Fitting the data to the model
+lm_creat <- lm(creatclear~age, data=creatinine)
+coef(lm_creat)
+
+#Adds a new variable for the predicted creatinine clearance rates
+creatinine <- creatinine %>%
+   mutate(pred_rate = predict(lm_creat, newdata = .))%>%
+   arrange(age)
+
+#Finds the predicted rate for a 55 year old
+fifty_five <- filter(creatinine, age==55)
+fifty_five #Returns 113.723
+```
+**Answer:** We should expect a creatinine clearance rate of approximately 113.72 mL/minute for a 55-year old. I determined this by fitting a linear model to the data with the patient's creatinine clearance rate as the response variable and the patient's age as the predictor variable. The fitted regression model turned out to be $\hat{y} = 147.81 - 0.62x$, and I used the predict function to get the expected clearance rate for a 55-year old.
+
+<br>
+
+#### Part B: How does creatinine clearance rate change with age? 
+
+**Answer:** The creatinine clearance rate decreases by 0.62 ml/minute for each increase in age of one year, on average. I determined this by fitting a linear model to the data and then getting the coefficients for the regression equation. The slope coefficient turned out to be approximately -0.62, which is where I got the creatinine clearance rate change with age. 
+
+<br>
+
+#### Part C: Whose creatinine clearance rate is healthier (higher) for their age: a 40-year-old with a rate of 135, or a 60-year-old with a rate of 112?
+
+```{r echo=FALSE, include=FALSE}
+#Filters the dataset to only have 60 year olds
+sixty <- creatinine %>%
+  filter(age == 60) 
+sixty #Predicted rate for 60 year old is 110.624 
+
+#Predict the clearance rate for a 40 year old
+147.8129158 - (0.6198159 * 40) # Returns 123.0203
+
+#Calculate the residual for the 60 year old
+112 - 110.624 #Returns 1.376
+
+#Calculate the residual for the 40 year old
+135 - 123.0203 #Returns 11.9797
+```
+**Answer:** The 40-year-old with a rate of 135 has the healthier creatinine clearance rate for their age. I first found the predicted rates for the two ages, and got about 110.62 mL/min for the 60 year old and 123.02 mL/min for the 40 year old. Then I calculated the residual by subtracting the predicted clearance rate from their actual clearance rates. For the 60 year old, I used the following equation: $residual = 112 - 110.62 = 1.38$. This indicates that the actual clearance rate of the 60 year old is about 1.38 mL/min higher than the predicted rate. For the 40 year old, I used the following equation: $residual = 135 - 123.02 = 11.98$. This indicates that the actual clearance rate of the 40 year old is about 11.98 mL/min higher than the predicted rate. Since 11.98 is a greater value than 1.38, the 40 year old has the healthier creatinine clearance rate for their age.
+
+***
+
+# **Problem 2: Capital Asset Pricing Model**
+
+```{r echo=FALSE}
+#Imports the dataset
+market <- read.csv("marketmodel.csv")
+```
+
+#### Part A: Short Introduction on the Beta of a Stock
+
+The beta of a stock measures the systematic risk that is related to the market as a whole. For instance, if there is a 1% change in the market portfolio, which includes all the different firms and assets, beta is the percentage change in the stock's return. Firms with a beta value less than 1.0 have less systematic risk than the average firm, and these are firms that are not as sensitive to market movements. On the other hand, firms with a beta value higher than 1.0 have more systematic risk than the average firm. If a firm had a beta of 0, they would have no systematic risk, which means the firm's return would not be affected by the return of the market portfolio at all. A firm with a negative beta is one with a negative risk premium, where the return is less than the risk free rate. This type of firm is very rare and will do well when the rest of the market is collapsing, so it serves as a form of insurance for investors. Beta is calculated by dividing the difference between the stock's rate of return and the risk-free rate by the difference between the market rate of return and the risk-free rate. In the Capital Asset Pricing Model, beta serves as a parameter for the model and measures the systematic risk of a stock in relation to the market, which helps estimate the expected return of the stock. 
+
+<br>
+
+#### Part B: Regressions of Six Big Stocks
+
+```{r echo=FALSE}
+#Function to regress the returns
+regression <- function(ticker, predictor, data) {
+  lm_model <- lm(paste(ticker, "~", predictor), data=data)
+  coefficients <- coef(lm_model)
+  rsquare <- rsquared(lm_model)
+  
+  summary <- tibble(
+    Stock = ticker,
+    Y_Intercept = coefficients[1],
+    Slope = coefficients[2],
+    R_Squared = rsquare
+  )
+  return(summary)
+}
+
+#Call the function with the six stocks
+apple <- regression("AAPL", "SPY", market)
+google <- regression("GOOG", "SPY", market)
+merck <- regression("MRK", "SPY", market)
+johnson <- regression("JNJ", "SPY", market)
+walmart <- regression("WMT", "SPY", market)
+target <- regression("TGT", "SPY", market)
+
+#Combine all the stocks into one table
+final_table <- rbind(apple, google, merck, johnson, walmart, target)
+
+#Produces a nicely formatted table of the stocks
+kable(final_table, col.names = c('Stock', 'Y-Intercept', 'Slope', 'R-Squared Value')) %>%
+kable_styling(bootstrap_options = c("striped"))
+```
+**Caption:** The table above was produced by regressing the returns of the six stocks using the Capital Asset Pricing Model. The y-intercept value represents the alpha value, the slope represents the beta value, and the r-squared value indicates how much of the variation is predictable, relative to the total variation. 
+
+<br>
+
+#### Part C: Conclusion
+
+Of the six stocks mentioned above, the stock with the lowest systematic risk is Walmart, and the stock with the highest systematic risk is Apple. Walmart's stock has the lowest beta value out of the six stocks at about 0.52, which indicates that its stock is not as sensitive to market movements relative to the other stocks. Meanwhile, Apple's stock has the highest beta value at about 1.07, which means that it has more systematic risk than the average firm. 
+
+***
+
+# **Problem 3: Covid-19**
+
+```{r echo=FALSE}
+#Imports the dataset
+covid <- read.csv("covid.csv")
+```
+
+#### Part A: An estimated growth rate and doubling time for Italy
+
+```{r echo=FALSE, include=FALSE}
+#Fitting exponential growth model for Italy
+italy <- covid %>%
+ filter(country == "Italy")
+  lm_italy <- lm(log(deaths)~ days_since_first_death, data=italy)
+  coef(lm_italy) #returns int=1.018602, days=0.183218
+
+#Calculating the doubling time
+70 / ((coef(lm_italy)[2])*100) #Returns 3.82
+```
+**Caption:** The resulting fitted exponential growth model for Italy was $\log{y} = 1.019 + 0.183x$. The estimated growth rate for Italy is about 18.3% and the estimated doubling time of the daily death total is about 4 days. 
+
+<br>
+
+#### Part B: An estimated growth rate and doubling time for Spain
+
+```{r echo=FALSE, include=FALSE}
+#Fitting exponential growth model for Spain
+spain <- covid %>%
+ filter(country == "Spain")
+  lm_spain <- lm(log(deaths)~ days_since_first_death, data=spain)
+  coef(lm_spain) #returns int=0.4652173, days=0.2762447
+
+#Calculating the doubling time
+70 / ((coef(lm_spain)[2])*100) #Returns 2.53
+```
+**Caption:** The resulting fitted exponential growth model for Spain was $\log{y} = 0.465 + 0.276x$. The estimated growth rate for Spain is about 27.6% and the estimated doubling time of the daily death total is about 3 days. 
+
+<br>
+
+#### Part C: A line graph showing reported daily deaths over time in each country
+
+```{r echo=FALSE}
+#Creates a line graph
+ggplot(covid) + geom_line(aes(x=days_since_first_death, y=deaths, color=country)) + labs(title="Daily Covid Deaths Over Time in Italy and Spain", x="Days Since First Death", y= "Number of Covid Deaths")
+```
+
+***
+
+# **Problem 4: Milk**
+
+```{r echo=FALSE}
+#Imports the dataset
+milk <- read.csv("milk.csv")
+```
+
+#### Part A: What is the estimated price elasticity of demand for milk?
+
+```{r echo=FALSE, include=FALSE}
+#Fits the data to a linear model
+lm_milk = lm(log(sales) ~ log(price), data=milk)
+coef(lm_milk) #Returns 4.720604 for int and -1.618578 for log(price)
+```
+**Answer:** The estimated price elasticity of demand for milk is about -1.62. This indicates that for each increase in the price of milk of one percent, people would by 1.62% less of it, on average. To get to this conclusion, I first fitted the data to a linear model by using a logarithmic scale for both the price and sales variables. I got the equation $\log{y} = 4.72 - 1.62\log{x}$ from the coefficients and simplified it down to $y= 112x^{-1.62}$. The economists' power-law model says that $Q=KP^{\beta}$ where $\beta$ is the price elasticity of demand, and I got my estimate by comparing that equation to my simplified equation. 
+
+<br>
