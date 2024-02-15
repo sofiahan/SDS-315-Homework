@@ -1,0 +1,535 @@
+---
+title: "Homework 4"
+author: "Sofia Han (szh247) - SDS 315 UT Austin"
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
+---
+
+```{r global_options, echo=FALSE, warning=FALSE}
+#Sets the global options
+knitr::opts_chunk$set(fig.height=6, fig.width=8, warning=FALSE, message=FALSE, error=FALSE, tidy=TRUE, tidy.opts=list(width.cutoff=60))
+
+#Loads the libraries 
+suppressMessages(library(tidyverse))
+library(rmarkdown)
+library(ggplot2)
+suppressMessages(library(mosaic))
+suppressMessages(library(kableExtra))
+```
+
+**Link to GitHub:** [Click Here](https://github.com/sofiahan/SDS-315-Homework)
+
+***
+
+# **Problem 1: Theories Regarding Gas Price Variations**
+
+```{r echo=FALSE}
+#Imports the dataset
+gas <- read.csv("gasprices.csv")
+```
+
+#### Theory A: 
+
+**Claim:** Gas stations charge more if they lack direct competition in sight.
+
+**Evidence:**
+```{r echo=FALSE}
+#Average gas prices for gas stations with or without competitors
+mean <- mean(Price~Competitors, data = gas)
+
+#Difference between the average gas prices for gas stations with or without competitors
+diffmean <- round(diffmean(Price~Competitors, data = gas), 4)
+
+#Creates a nicely formatted table of the diffmean
+kable(diffmean, col.names = c('Statistic', 'Value')) %>%
+kable_styling(bootstrap_options = c("striped"))
+```
+
+Among the observed gas stations, gas stations with competitors in sight have gas prices around `r diffmean` lower than gas stations with no competitors in sight, on average.
+
+```{r echo=FALSE}
+#Runs 10,000 bootstrap samples from the dataset and computes the difference in mean gas price for each sample
+gas_bootstrap <- do(10000)*diffmean(Price~Competitors, data = mosaic::resample(gas))
+
+#Computes a 95% confidence interval
+confidence <- confint(gas_bootstrap, level=0.95)
+
+#Rounds the difference in mean prices to four decimal places
+confidence$lower <- round(confidence$lower, 4)
+confidence$upper <- round(confidence$upper, 4)
+confidence$estimate <- round(confidence$estimate, 4)
+
+#Creates a nicely formatted table of the confidence interval results
+kable(confidence, col.names = c('Statistic', 'Lower Bound', 'Upper Bound', 'Confidence Level', 'Method', 'Estimate')) %>%
+kable_styling(bootstrap_options = c("striped"))
+```
+
+From the confidence interval results, I can say with 95% confidence that the difference in mean prices between gas stations with competitors in sight and gas stations with no competitors in sight, on average, is somewhere between `r confidence$lower` and `r confidence$upper`. Additionally, since this confidence interval does include 0, the difference is not statistically significant at the 5% level. Regarding whether the theory is supported by the data, the evidence indicates that the theory is unsupported. Gas stations do not charge more if they lack direct competition in sight because 0 is included in the confidence interval. This means that when a sample is run, sometimes the difference in mean gas prices may be positive (gas stations with competitors in sight charge more), while other times the difference in mean gas prices may be negative (gas stations with competitors in sight charge less). As there are both negative and positive values present in the confidence interval, there is not enough evidence to say that gas stations charge more if they lack direct competition in sight.
+
+**Conclusion:**
+
+In conclusion, the evidence indicates that gas stations do not charge more if they lack direct competition in sight. The theory is unsupported by the data. 
+
+
+
+#### Theory B: 
+
+**Claim:** The richer the area, the higher the gas prices.
+
+**Evidence:**
+```{r echo=FALSE, include=FALSE}
+#Turns off scientific notation and makes a scatterplot of income and price
+options(scipen = 999)
+ggplot(gas) + geom_point(aes(x=Income, y=Price))
+
+#Fits a linear model for Price vs Income
+lm_income <- lm(Price~Income, data=gas)
+coef(lm_income)
+```
+
+```{r echo=FALSE}
+#Difference between the average gas prices for gas stations with or without competitors
+coefficients <- coef(lm_income)
+
+#Creates a nicely formatted table of the lm coefficients
+kable(coefficients, col.names = c('Label','Value')) %>%
+kable_styling(bootstrap_options = c("striped"))
+```
+
+Among the observed gas stations, the slope of gas prices versus income is approximately 0.0000012 extra dollars in gas price for each additional dollar in income.
+
+```{r echo=FALSE}
+#Turns off scientific notation
+options(scipen = 999)
+
+#Runs 10,000 bootstrap samples from the dataset and refits the linear model for each sample
+boot_income <- do(10000)*lm(Price~Income, data=mosaic::resample(gas))
+
+#Computes a 95% confidence interval
+confidence <- confint(boot_income, level=0.95)
+
+#Creates a nicely formatted table of the confidence interval results
+kable(confidence, col.names = c('Statistic', 'Lower Bound', 'Upper Bound', 'Confidence Level', 'Method', 'Estimate')) %>%
+kable_styling(bootstrap_options = c("striped"))
+
+#Fits the line on top of the data
+ggplot(gas) + geom_point(aes(x=Income, y=Price)) + geom_smooth(aes(x=Income, y=Price), method='lm') + labs(title='Relationship Between Gas Prices and Income')
+```
+
+From the confidence interval results, I can say with 95% confidence that the true population-wide slope of gas prices versus income is somewhere between `r confidence$lower[confidence$name == "Income"]` and `r confidence$upper[confidence$name == "Income"]` extra dollars in gas price for each additional dollar in income. Additionally, since this confidence interval does not include 0, the difference is statistically significant at the 5% level. Regarding whether the theory is supported by the data, the evidence indicates that the theory is supported. Gas stations in richer areas do seem to have higher prices because 0 is not included in the confidence interval. The interval for the income row is entirely positive, meaning that the fitted model indicates that gas prices are higher in regions with higher income. Thus there is enough evidence to say that the gas prices are higher in regions with higher income.
+
+**Conclusion:**
+
+In conclusion, the evidence indicates that the richer the area, the higher the gas prices. The theory is supported by the data. 
+
+
+
+#### Theory C: 
+
+**Claim:** Gas stations at stoplights charge more.
+
+**Evidence:**
+
+```{r echo=FALSE}
+#Average gas prices for gas stations at stoplights and not at stoplights
+mean <- mean(Price~Stoplight, data = gas)
+
+#Difference between the average gas prices for gas stations at and not at stoplights
+diffmean <- round(diffmean(Price~Stoplight, data = gas), 4)
+
+#Creates a nicely formatted table of the diffmean
+kable(diffmean, col.names = c('Statistic', 'Value')) %>%
+kable_styling(bootstrap_options = c("striped"))
+```
+
+Among the observed gas stations, gas stations at stoplights have gas prices around `r diffmean` lower than gas stations not at stoplights, on average.
+
+```{r echo=FALSE}
+#Runs 10,000 bootstrap samples from the dataset and computes the difference in mean gas price for each sample
+gas_bootstrap <- do(10000)*diffmean(Price~Stoplight, data = mosaic::resample(gas))
+
+#Computes a 95% confidence interval
+confidence <- confint(gas_bootstrap, level=0.95)
+
+#Rounds the difference in mean prices to four decimal places
+confidence$lower <- round(confidence$lower, 4)
+confidence$upper <- round(confidence$upper, 4)
+confidence$estimate <- round(confidence$estimate, 4)
+
+#Creates a nicely formatted table of the confidence interval results
+kable(confidence, col.names = c('Statistic', 'Lower Bound', 'Upper Bound', 'Confidence Level', 'Method', 'Estimate')) %>%
+kable_styling(bootstrap_options = c("striped"))
+```
+
+From the confidence interval results, I can say with 95% confidence that the difference in means between gas stations at stoplights and gas stations not at stoplights, on average, is somewhere between `r confidence$lower` and `r confidence$upper`. Additionally, since this confidence interval does include 0, the difference is not statistically significant at the 5% level. Regarding whether the theory is supported by the data, the evidence indicates that the theory is unsupported. Gas stations do not charge more if they are at a stoplight because 0 is included in the confidence interval. This means that when a sample is run, sometimes the difference in mean gas prices may be positive (gas stations at stoplights charge more), while other times the difference in mean gas prices may be negative (gas stations at stoplights charge less). As there are both negative and positive values present in the confidence interval, there is not enough evidence to say that gas stations charge more if there is a stoplight in front of the gas station.
+
+**Conclusion:**
+
+In conclusion, the evidence indicates that gas stations at stoplights do not charge more than those not at stoplights. The theory is unsupported by the data.
+
+
+
+#### Theory D: 
+
+**Claim:** Gas stations with direct highway access charge more.
+
+**Evidence:**
+```{r echo=FALSE}
+#Average gas prices for gas stations with or without access to the highway
+mean <- mean(Price~Highway, data = gas)
+
+#Difference between the average gas prices for gas stations with and without access to the highway
+diffmean <- round(diffmean(Price~Highway, data = gas), 5)
+
+#Creates a nicely formatted table of the diffmean
+kable(diffmean, col.names = c('Statistic', 'Value')) %>%
+kable_styling(bootstrap_options = c("striped"))
+```
+
+Among the observed gas stations, gas stations with highway access have gas prices around `r diffmean` higher than gas stations without highway access, on average.
+
+```{r echo=FALSE}
+#Runs 10,000 bootstrap samples from the dataset and computes the difference in mean gas price for each sample
+gas_bootstrap <- do(10000)*diffmean(Price~Highway, data = mosaic::resample(gas))
+
+#Computes a 95% confidence interval
+confidence <- confint(gas_bootstrap, level=0.95)
+
+#Rounds the difference in mean prices to five decimal places
+confidence$lower <- round(confidence$lower, 5)
+confidence$upper <- round(confidence$upper, 5)
+confidence$estimate <- round(confidence$estimate, 5)
+
+#Creates a nicely formatted table of the confidence interval results
+kable(confidence, col.names = c('Statistic', 'Lower Bound', 'Upper Bound', 'Confidence Level', 'Method', 'Estimate')) %>%
+kable_styling(bootstrap_options = c("striped"))
+```
+
+From the confidence interval results, I can say with 95% confidence that gas stations with direct highway access charge slightly more than gas stations without direct highway access, on average, with a difference in mean prices somewhere between `r confidence$lower` and `r confidence$upper`. Additionally, since this confidence interval does not include 0, the difference is statistically significant at the 5% level. Regarding whether the theory is supported by the data, the evidence indicates that the theory is supported. Gas stations do tend to charge more if they have direct highway access because 0 is not included in the confidence interval. The interval is entirely positive, meaning that gas stations accessible from a highway typically charge more than those without highway access. Thus, there is enough evidence to say that gas stations with direct highway access charge more than gas stations with no direct highway access.
+
+**Conclusion:**
+
+In conclusion, the evidence indicates that the gas stations with direct highway access charge more. The theory is supported by the data. 
+
+
+
+#### Theory E: 
+
+**Claim:** Shell charges more than all other non-Shell brands.
+
+**Evidence:**
+
+```{r echo=FALSE}
+#Create a new variable indicating whether the brand is shell or not
+gas_filtered <- gas%>%
+  mutate(shell = ifelse(Brand == "Shell", TRUE, FALSE))
+
+#Average gas prices for Shell gas stations and non-Shell gas stations
+mean <- mean(Price~shell, data = gas_filtered)
+
+#Difference between the average gas prices for Shell gas stations and other brands
+diffmean <- round(diffmean(Price~shell, data = gas_filtered), 5)
+
+#Creates a nicely formatted table of the diffmean
+kable(diffmean, col.names = c('Statistic', 'Value')) %>%
+kable_styling(bootstrap_options = c("striped"))
+```
+
+Among the observed gas stations, gas stations that are Shell brand have gas prices around `r diffmean` higher than gas stations of non-Shell brand, on average.
+
+```{r echo=FALSE}
+#Runs 10,000 bootstrap samples from the dataset and computes the difference in mean gas price for each sample
+gas_bootstrap <- do(10000)*diffmean(Price~shell, data = mosaic::resample(gas_filtered))
+
+#Computes a 95% confidence interval
+confidence <- confint(gas_bootstrap, level=0.95)
+
+#Rounds the difference in mean prices to five decimal places
+confidence$lower <- round(confidence$lower, 5)
+confidence$upper <- round(confidence$upper, 5)
+confidence$estimate <- round(confidence$estimate, 5)
+
+#Creates a nicely formatted table of the confidence interval results
+kable(confidence, col.names = c('Statistic', 'Lower Bound', 'Upper Bound', 'Confidence Level', 'Method', 'Estimate')) %>%
+kable_styling(bootstrap_options = c("striped"))
+```
+
+From the confidence interval results, I can say with 95% confidence that the difference in means between gas stations that are Shell brand and gas stations of non-Shell brands, on average, is somewhere between `r confidence$lower` and `r confidence$upper`. Additionally, since this confidence interval does include 0, the difference is not statistically significant at the 5% level. Regarding whether the theory is supported by the data, the evidence indicates that the theory is unsupported. Gas stations do not charge more if they are Shell brand because 0 is included in the confidence interval. This means that when a sample is run, sometimes the difference in mean gas prices may be positive (gas stations of the Shell brand charge more), while other times the difference in mean gas prices may be negative (gas stations of the Shell brand charge less). As there are both negative and positive values present in the confidence interval, there is not enough evidence to say that gas stations charge more if they are of the Shell brand.
+
+**Conclusion:**
+
+In conclusion, the evidence indicates that Shell does not charge more than all other non-Shell brands. The theory is unsupported by the data.
+
+<br>
+
+# **Problem 2: Analyzing Used Mercedes S-Class Vehicles**
+
+```{r echo=FALSE}
+#Imports the dataset
+mercedes <- read.csv("sclass.csv")
+```
+
+#### Part A: 95% Bootstrap Confidence Interval For The Average Mileage of 2011 S-Class 63 AMGs
+
+```{r echo=FALSE}
+#Filters the dataset to only include the 2011 cars with 63 amg
+mercedes_filtered <- mercedes %>%
+  filter(year == 2011 & trim == "63 AMG")
+
+#Calculates the mean mileage for the cars in the filtered dataset
+mean <- mean(~mileage, data = mercedes_filtered)
+
+#Runs 10,000 bootstrap samples from the dataset and computes the mean mileage for each sample
+mercedes_bootstrap <- do(10000)*mean(~mileage, data = mosaic::resample(mercedes_filtered))
+
+#Computes a 95% confidence interval
+confidence <- confint(mercedes_bootstrap, level=0.95)
+
+#Rounds the average mileage values to zero decimal places
+confidence$lower <- round(confidence$lower, 0)
+confidence$upper <- round(confidence$upper, 0)
+confidence$estimate <- round(confidence$estimate, 0)
+
+#Creates a nicely formatted table of the confidence interval results
+kable(confidence, col.names = c('Statistic', 'Lower Bound', 'Upper Bound', 'Confidence Level', 'Method', 'Estimate')) %>%
+kable_styling(bootstrap_options = c("striped"))
+```
+
+
+#### Part B: 95% Bootstrap Confidence Interval For The Proportion of All 2014 S-Class 550s Painted Black
+
+```{r echo=FALSE}
+#Filters the dataset to include only 2014 cars with trim 550
+mercedes_filtered2 <- mercedes %>%
+  filter(year == 2014 & trim == "550")%>%
+  mutate(isBlack = ifelse(color == "Black", TRUE, FALSE))
+
+#Calculates the proportion of cars painted black in the filtered dataset
+proportion <- prop(~isBlack, data = mercedes_filtered2)
+
+#Runs 10,000 bootstrap samples from the dataset and computes the proportion of cars that were painted black for each sample
+mercedes_bootstrap2 <- do(10000)*prop(~isBlack, data = mosaic::resample(mercedes_filtered2))
+
+#Computes a 95% confidence interval
+confidence2 <- confint(mercedes_bootstrap2, level = 0.95)
+
+#Rounds the proportion of black cars to three decimal places
+confidence2$lower <- round(confidence2$lower, 3)
+confidence2$upper <- round(confidence2$upper, 3)
+confidence2$estimate <- round(confidence2$estimate, 3)
+
+#Creates a nicely formatted table of the confidence interval results
+kable(confidence2, col.names = c('Statistic', 'Lower Bound', 'Upper Bound', 'Confidence Level', 'Method', 'Estimate')) %>%
+kable_styling(bootstrap_options = c("striped"))
+```
+
+
+<br>
+
+# **Problem 3: Viewer Responses to TV Shows**
+
+```{r echo=FALSE}
+#Imports the dataset
+tv_shows <- read.csv("nbc_pilotsurvey.csv")
+```
+
+#### Part A:   
+
+**Question:** Which show makes people happier: "Living with Ed" or "My Name is Earl"?
+
+**Approach:** To answer the question, I took 10,000 bootstrap samples from the filtered data that only includes the observations in which the show is either "Living with Ed" or "My Name is Earl". For each bootstrap sample, I used diffmean to recompute the difference of the means of the average rating for the Q1 Happy question between "Living with Ed" and "My Name is Earl". I stored those results in an object called tv_bootstrap and then created a 95% confidence interval for the difference using the confint function. 
+
+**Results:** 
+```{r echo=FALSE}
+#Filters the dataset to only include the observations with these two shows
+tv_filtered <- tv_shows %>%
+  filter(Show == "Living with Ed" | Show == "My Name is Earl")
+
+#Average ratings to the Q1 Happy question for each show
+mean <- mean(Q1_Happy~Show, data = tv_filtered)
+
+#Difference between the average ratings to the Q1 Happy question
+diffmean <- round(diffmean(Q1_Happy~Show, data = tv_filtered), 3)
+
+#Creates a nicely formatted table of the diffmean
+kable(diffmean, col.names = c('Statistic', 'Value')) %>%
+kable_styling(bootstrap_options = c("striped"))
+```
+
+Among the survey respondents, "My Name is Earl" had ratings around `r diffmean` points lower for the Q1 Happy question than that of "Living with Ed", on average.
+
+```{r echo=FALSE}
+#Runs 10,000 bootstrap samples from the dataset and computes the difference between the average ratings for Q1 Happy for each sample
+tv_bootstrap <- do(10000)*diffmean(Q1_Happy~Show, data = mosaic::resample(tv_filtered))
+
+#Computes a 95% confidence interval
+confidence <- confint(tv_bootstrap, level = 0.95)
+
+#Rounds the difference between the average ratings to 3 decimal places
+confidence$lower <- round(confidence$lower, 3)
+confidence$upper <- round(confidence$upper, 3)
+confidence$estimate <- round(confidence$estimate, 3)
+
+#Creates a nicely formatted table of the confidence interval results
+kable(confidence, col.names = c('Statistic', 'Lower Bound', 'Upper Bound', 'Confidence Level', 'Method', 'Estimate')) %>%
+kable_styling(bootstrap_options = c("striped"))  
+```
+
+From the confidence interval results, I can say with 95% confidence that on average, the difference in the mean ratings to the Q1 Happy question for "Living with Ed" and "My Name is Earl" is somewhere between `r confidence$lower` and `r confidence$upper`. Additionally, since this confidence interval does include 0, the difference is not statistically significant at the 5% level. 
+
+**Conclusion:** 
+
+In conclusion, the results indicate that one show does not consistently produce a higher mean Q1 Happy response among viewers. This is because 0 is included in the confidence interval, which means that sometimes "Living with Ed" may produce a higher mean Q1 Happy response among viewers, while other times, "My Name is Earl" may produce a higher mean Q1 Happy response among viewers. As there are both negative and positive numbers present in the confidence interval, there is not enough evidence to say that one show makes people happier than the other.
+
+
+
+#### Part B:   
+
+**Question:** Which reality/contest show made people feel more annoyed: "The Biggest Loser" or "The Apprentice: Los Angeles"?
+
+**Approach:** To answer the question, I took 10,000 bootstrap samples from the filtered data that only includes the observations in which the show is either "The Biggest Loser" or "The Apprentice: Los Angeles". For each bootstrap sample, I used diffmean to recompute the difference of the means of the average rating for the Q1 Annoyed question between "The Biggest Loser" and "The Apprentice: Los Angeles". I stored those results in an object called tv_bootstrap and then created a 95% confidence interval for the difference using the confint function. 
+
+**Results:** 
+```{r echo=FALSE}
+#Filters the dataset to only include the observations with these two shows
+tv_filtered <- tv_shows %>%
+  filter(Show == "The Biggest Loser" | Show == "The Apprentice: Los Angeles")
+
+#Average ratings to the Q1 Annoyed question for each show
+mean <- mean(Q1_Annoyed~Show, data = tv_filtered)
+
+#Difference between the average ratings to the Q1 Annoyed question
+diffmean <- round(diffmean(Q1_Annoyed~Show, data = tv_filtered), 3)
+
+#Creates a nicely formatted table of the diffmean
+kable(diffmean, col.names = c('Statistic', 'Value')) %>%
+kable_styling(bootstrap_options = c("striped"))
+```
+
+Among the survey respondents, "The Biggest Loser" had ratings around `r diffmean` points lower for the Q1 Annoyed question than that of "The Apprentice: Los Angeles", on average. 
+
+```{r echo=FALSE}
+#Runs 10,000 bootstrap samples from the dataset and computes the difference between the average ratings for Q1 Annoyed for each sample
+tv_bootstrap <- do(10000)*diffmean(Q1_Annoyed~Show, data = mosaic::resample(tv_filtered))
+
+#Computes a 95% confidence interval
+confidence <- confint(tv_bootstrap, level = 0.95)
+
+#Rounds the difference between the average ratings to 3 decimal places
+confidence$lower <- round(confidence$lower, 3)
+confidence$upper <- round(confidence$upper, 3)
+confidence$estimate <- round(confidence$estimate, 3)
+
+#Creates a nicely formatted table of the confidence interval results
+kable(confidence, col.names = c('Statistic', 'Lower Bound', 'Upper Bound', 'Confidence Level', 'Method', 'Estimate')) %>%
+kable_styling(bootstrap_options = c("striped"))  
+```
+
+From the confidence interval results, I can say with 95% confidence that "The Apprentice: Los Angeles" has a slightly higher average rating for the Q1 Annoyed question than that of "The Biggest Loser", on average, with a difference in mean ratings somewhere between `r confidence$lower` and `r confidence$upper`. Additionally, since this confidence interval does not include 0, the difference is statistically significant at the 5% level. 
+
+**Conclusion:** 
+
+In conclusion, the results indicate that one show does consistently produce a higher mean Q1 Annoyed response among viewers. This is because 0 is not included in the confidence interval; the interval is entirely negative, meaning that "The Apprentice: Los Angeles" typically has the higher average rating for the Q1 Annoyed question. Thus, there is enough evidence to say that "The Apprentice: Los Angeles" makes people feel more annoyed than "The Biggest Loser".
+
+
+
+#### Part C:   
+
+**Question:** What proportion of American TV watchers would we expect to give a respone of 4 or greater to the "Q2_Confusing" question regarding the show "Dancing with the Stars"?
+
+**Approach:** To answer the question, I took 10,000 bootstrap samples from the filtered data that only includes the observations in which the show is "Dancing with the Stars". I also created a new variable using mutate called "confused" where if the response to the Q2_Confusing question was greater than or equal to 4, the label would be true, and for other instances, the label would be false. For each bootstrap sample, I used prop to recompute the proportion of people who responded with 4 or greater to the Q2_Confusing question, then stored those results in an object called tv_bootstrap and then created a 95% confidence interval for the proportions using the confint function. 
+
+**Results:** 
+```{r echo=FALSE}
+#Filters the dataset to only include the observations with Dancing with the Stars
+tv_filtered <- tv_shows %>%
+  filter(Show == "Dancing with the Stars") %>%
+  mutate(confused = ifelse(Q2_Confusing >= 4, TRUE, FALSE))
+
+#Proportion of people who responded to Q2 Confusing with 4 or higher
+proportion <- round(prop(~confused, data = tv_filtered), 4)
+
+#Creates a nicely formatted table of the proportion
+kable(proportion, col.names = c('Statistic', 'Value')) %>%
+kable_styling(bootstrap_options = c("striped"))
+```
+
+Among the survey respondents, the proportion of people who responded to Q2 Confusing with 4 or higher was about `r proportion`. 
+
+```{r echo=FALSE}
+#Runs 10,000 bootstrap samples from the dataset and computes the proportion of people who responded 4 or higher for Q2 Confusing for each sample
+tv_bootstrap <- do(10000)*prop(~confused, data = mosaic::resample(tv_filtered))
+
+#Computes a 95% confidence interval
+confidence <- confint(tv_bootstrap, level = 0.95)
+
+#Rounds the proportions to 4 decimal places
+confidence$lower <- round(confidence$lower, 4)
+confidence$upper <- round(confidence$upper, 4)
+confidence$estimate <- round(confidence$estimate, 4)
+
+#Creates a nicely formatted table of the confidence interval results
+kable(confidence, col.names = c('Statistic', 'Lower Bound', 'Upper Bound', 'Confidence Level', 'Method', 'Estimate')) %>%
+kable_styling(bootstrap_options = c("striped"))  
+```
+
+From the confidence interval results, I can say with 95% confidence that we would expect very few American TV watchers to find the show confusing, on average, with the proportion of people responding with 4 or greater to the Q2_Confusing question to be somewhere between `r confidence$lower` and `r confidence$upper`. Additionally, since this confidence interval does not include 0, the difference is statistically significant at the 5% level. 
+
+**Conclusion:** 
+
+In conclusion, the results indicate that we are 95% confident that the proportion of American TV watchers to give a response of 4 or greater to the Q2_Confusing question to be between `r confidence$lower` and `r confidence$upper`. 
+
+<br>
+
+# **Problem 4: EBay Advertising**
+
+```{r echo=FALSE}
+#Imports the dataset
+ebay <- read.csv("ebay.csv")
+```
+
+**Question:** Does the data favor the idea that paid search advertising on Google creates extra revenue for EBay?
+
+**Approach:** To answer the question, I took 10,000 bootstrap samples from the original EBay data. For each bootstrap sample, I used diffmean to recompute the difference of the means of the revenue ratios between the treatment group and control group. I stored those results in an object called ebay_bootstrap and then created a 95% confidence interval for the difference using the confint function. 
+
+**Results:** 
+```{r echo=FALSE}
+#Average revenue ratios for the treatment and control groups
+mean <- mean(rev_ratio~adwords_pause, data = ebay)
+
+#Difference between the average revenue ratios
+diffmean <- round(diffmean(rev_ratio~adwords_pause, data = ebay), 4)
+
+#Creates a nicely formatted table of the diffmean
+kable(diffmean, col.names = c('Statistic', 'Value')) %>%
+kable_styling(bootstrap_options = c("striped"))
+```
+
+Among the DMA observations, the treatment group had a revenue ratio around `r diffmean` lower than that of the control group, on average. 
+
+```{r echo=FALSE}
+#Runs 10,000 bootstrap samples from the dataset and computes the difference between the average revenue ratios for each sample
+ebay_bootstrap <- do(10000)*diffmean(rev_ratio~adwords_pause, data = mosaic::resample(ebay))
+
+#Computes a 95% confidence interval
+confidence <- confint(ebay_bootstrap, level = 0.95)
+
+#Rounds the difference between the average revenue ratios to four decimal places
+confidence$lower <- round(confidence$lower, 4)
+confidence$upper <- round(confidence$upper, 4)
+confidence$estimate <- round(confidence$estimate, 4)
+
+#Creates a nicely formatted table of the confidence interval results
+kable(confidence, col.names = c('Statistic', 'Lower Bound', 'Upper Bound', 'Confidence Level', 'Method', 'Estimate')) %>%
+kable_styling(bootstrap_options = c("striped"))  
+```
+
+From the confidence interval results, I can say with 95% confidence that the treatment group barely has a revenue ratio lower than the control group, on average, with a difference in mean ratios somewhere between `r confidence$lower` and `r confidence$upper`. Additionally, since this confidence interval does not include 0, the difference is statistically significant at the 5% level. 
+
+**Conclusion:** 
+
+In conclusion, the data does not favor the idea that paid search advertising on Google creates extra revenue for EBay. Based on the results, there is barely a difference in average revenue ratios in the control and treatment groups, less than a 0.1 difference. If EBay's paid search advertising on Google was indeed driving extra revenue, it would be expected that the revenue ratio in the treatment groups be much lower than that of the control group. In other words, the difference in revenue ratios estimated from the confidence interval would have been much greater. However, the results indicate that the extra traffic brought to EBay's site from paid search results does not increase their revenue. 
+
+<br>
