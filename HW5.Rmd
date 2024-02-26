@@ -1,0 +1,194 @@
+---
+title: "Homework 5"
+author: "Sofia Han (szh247) - SDS 315 UT Austin"
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
+---
+
+```{r global_options, echo=FALSE, warning=FALSE}
+#Sets the global options
+knitr::opts_chunk$set(fig.height=6, fig.width=8, warning=FALSE, message=FALSE, error=FALSE, tidy=TRUE, tidy.opts=list(width.cutoff=60))
+
+#Loads the libraries 
+suppressMessages(library(tidyverse))
+library(rmarkdown)
+library(ggplot2)
+suppressMessages(library(mosaic))
+suppressMessages(library(kableExtra))
+```
+
+**Link to GitHub:** [Click Here](https://github.com/sofiahan/SDS-315-Homework)
+
+***
+
+# **Problem 1: Iron Bank**
+
+```{r echo=FALSE}
+#Simulates the number of flagged trades 
+trades_sim <- do(100000)*nflip(n = 2021, prob = .024)
+
+#Displays the first few test statistics
+head <- head(trades_sim)
+
+#Creates a plot of the probability distribution of the test statistic
+ggplot(trades_sim) + geom_histogram(aes(x=nflip), binwidth = 1) + labs(title = "Probability Distribution of The Number of Flagged Trades out of 2021", x = "Number of Flagged Trades", y = "Frequency")
+
+#Calculates the p-value
+sum <- sum(trades_sim >= 70) 
+p <- sum/100000 
+```
+
+
+**Are the observed data (70 flagged trades out of 2021) consistent with the SEC's null hypothesis that, over the long run, securities trades from the Iron Bank are flagged at the same 2.4% baseline rate as that of other traders?**
+
+**Response:** The null hypothesis that I am testing is that security trades from the Iron Bank are flagged at the same baseline rate of 2.4% as that of other traders, over the long run. The test statistic that I used to measure evidence against the null hypothesis was the number of flagged trades out of 2021. In the data, 70 of 2021 trades were flagged. Assuming that the null hypothesis is true, I simulated the number of flagged trades out of 2021 100,000 times. The p-value that I calculated from summing the number of simulations that yielded 70 flagged trades or more just by chance and dividing that number by 100000 was `r p`. This small p-value indicates that having 70 trades flagged out of 2021 is highly unlikely, indicating that there is a possibility of insider trading or some other non-random factor influencing the trading behavior at the Iron Bank. To defend my conclusion, the probability distribution plot shows that there is an extremely small amount of flagged trades at 70 or more and the context mentioned that the suspicious trading patterns were from a cluster of employees rather than an individual, which makes it even more likely that the abnormal amount of flagged trades was not due to chance alone. Thus, the observed data is not consistent with the SEC's null hypothesis that, over the long run, securities trades from the Iron Bank are flagged at the same 2.4% baseline rate as that of other traders.   
+
+<br>
+
+# **Problem 2: Health Inspections**
+
+```{r echo=FALSE}
+#Simulates the number of health code violations
+health_sim <- do(100000)*nflip(n = 50, prob = .03)
+
+#Displays the first few test statistics
+head <- head(health_sim)
+
+#Creates a plot of the probability distribution of the test statistic
+ggplot(health_sim) + geom_histogram(aes(x=nflip), binwidth = 1) + labs(title = "Probability Distribution of The Number of Health Code Violations out of 50 Inspections", x = "Number of Health Code Violations", y = "Frequency")
+
+#Calculates the p-value
+options(scipen = 999)
+sum <- sum(health_sim >= 8) 
+p <- sum/100000 
+```
+
+
+**Are the observed data for Gourmet Bites consistent with the Health Department's null hypothesis that, on average, restaurants in the city cited for health code violations at the same 3% baseline rate?**
+
+**Response:** The null hypothesis that I am testing is that Gourmet Bites is cited for health code violations at the same 3% baseline rate as that of other restaurants in the city, on average. The test statistic that I used to measure evidence against the null hypothesis was the number of health code violations out of 50 inspections. In the data, 8 of 50 inspections resulted in health code violations. Assuming that the null hypothesis is true, I simulated the number of health code violations out of 50 100,000 times. The p-value that I calculated from summing the number of simulations that yielded 8 health violations or more just by chance and dividing that number by 100000 was `r p`. This extremely small p-value indicates that having 8 health code violations is very unlikely, indicating that the observed rate of health code violations at Gourmet Bites is significantly higher than what one would expect based on random chance alone and that there might be some non-random factor influencing the health code violation reports at Gourmet Bites. To defend my conclusion, the 50 inspections of various branches of Gourmet Bites is a substantial sample size, which provides a representative overview of the chain's performance. Furthermore, the comparison against the citywide average highlights that Gourmet Bites stands out in terms of health code violations. Thus, the observed data is not consistent with the Health Department's null hypothesis that, on average, restaurants in the city are cited for health code violations at the same 3% baseline rate. 
+
+<br>
+
+# **Problem 3: LLM Watermarking**
+
+```{r echo=FALSE}
+#Imports the necessary datasets
+letters <- read.csv("letter_frequencies.csv")
+
+#Applies readLines function to the txt file 
+sentences <- readLines("brown_sentences.txt")
+```
+
+#### Part A: The Null/Reference Distribution
+
+**First Few Chi-Square Statistics**
+```{r echo=FALSE}
+#Initializes an empty vector to store the resulting chi square statistics
+chi_squared_vector <- numeric()
+
+#Loops through each sentence 
+for (sentence in sentences) {
+  #Ensures letter frequencies are normalized and sum to 1
+  letters$Probability <- letters$Probability / sum(letters$Probability)
+  
+  #Removes non-letters and converts to uppercase
+  clean_sentence <- gsub("[^A-Za-z]", "", sentence)
+  clean_sentence <- toupper(clean_sentence)
+  
+  #Counts the occurrences of each letter in the sentence
+  observed_counts <- table(factor(strsplit(clean_sentence, "")[[1]], levels =
+                                   letters$Letter))
+  #Calculates the sentence length
+  total_letters <- sum(observed_counts)
+  
+  #Calculates the expected counts
+  expected_counts <- total_letters * letters$Probability
+  
+  #Calculates the chi square statistic
+  chi_squared_stat <- sum((observed_counts - expected_counts)^2 / expected_counts)
+  
+  #Appends the chi square statistic to the vector
+  chi_squared_vector <- c(chi_squared_vector, chi_squared_stat)
+}
+
+#Creates a tibble with the chi square statistics
+results <- tibble(chi_squared = chi_squared_vector)
+
+#First few chi square statistics
+head <- head(results)
+
+#Creates a nicely formatted table of the first few chi square results
+kable(head) %>%
+kable_styling(bootstrap_options = c("striped"))
+```
+
+
+#### Part B: Checking for a Watermark
+
+```{r echo=FALSE}
+#Vector containing the ten sentences
+ten_sentences <- c(
+  "She opened the book and started to read the first chapter, eagerly anticipating what might come next.",
+  "Despite the heavy rain, they decided to go for a long walk in the park, crossing the main avenue by the fountain in the center.",
+  "The museum’s new exhibit features ancient artifacts from various civilizations around the world.",
+  "He carefully examined the document, looking for any clues that might help solve the mystery.",
+  "The students gathered in the auditorium to listen to the guest speaker’s inspiring lecture.",
+  "Feeling vexed after an arduous and zany day at work, she hoped for a peaceful and quiet evening at home, cozying up after a quick dinner with some TV, or maybe a book on her upcoming visit to Auckland.",
+  "The chef demonstrated how to prepare a delicious meal using only locally sourced ingredients, focusing mainly on some excellent dinner recipes from Spain.",
+  "They watched the sunset from the hilltop, marveling at the beautiful array of colors in the sky.",
+  "The committee reviewed the proposal and provided many points of useful feedback to improve the project’s effectiveness.",
+  "Despite the challenges faced during the project, the team worked tirelessly to ensure its successful completion, resulting in a product that exceeded everyone’s expectations."
+)
+
+#Null distribution of chi square statistics
+null_distribution <- results$chi_squared
+
+#Initializes an empty vector to store p-values
+p_values <- numeric()
+
+#Loops through the ten sentences
+for (sentence in ten_sentences) {
+  #Ensures letter frequencies are normalized and sum to 1
+  letters$Probability = letters$Probability / sum(letters$Probability)
+  
+  #Removes non-letters and converts to uppercase
+  clean_sentence <- gsub("[^A-Za-z]", "", sentence)
+  clean_sentence <- toupper(clean_sentence)
+  
+  #Counts the occurrences of each letter in the sentence
+  observed_counts <- table(factor(strsplit(clean_sentence, "")[[1]], levels =
+                                   letters$Letter))
+  
+  #Calculates the sentence length
+  total_letters <- sum(observed_counts)
+  
+  #Calculates expected counts
+  expected_counts <- total_letters * letters$Probability
+  
+  #Calculates the chi square statistic
+  chi_squared_stat <- sum((observed_counts - expected_counts)^2 / expected_counts)
+  
+  #Calculates the p-value
+  p = sum(null_distribution >= chi_squared_stat) / length(null_distribution)
+  
+  #Appends the p-value to the vector
+  p_values <- c(p_values, p)
+}
+
+#Creates a tibble with the p-values
+p_tibble <- tibble(Sentence = ten_sentences, p_Value = round(p_values, 3))
+
+#Creates a nicely formatted table of the p-value results
+kable(p_tibble, col.names = c('Sentence', 'p value')) %>%
+kable_styling(bootstrap_options = c("striped"))
+```
+**Which sentence was produced by an LLM?**
+
+**Response:** Sentence 6 was produced by an LLM because it has the lowest p-value out of the ten sentences. A low p-value indicates that the sentence likely does not follow the typical English letter distribution, suggesting it may have been artificially generated or manipulated.
+
+<br>
+
+
